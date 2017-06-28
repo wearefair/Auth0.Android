@@ -34,10 +34,11 @@ Open your app's `AndroidManifest.xml` file and add the following permission.
 
 ## Usage
 
-First create an instance of `Auth0` with your client information
+First create an instance of `Auth0` with your client information. It's important to set it as "OIDC conformant" to use the new Client Type Grants, which among other things will allow you to request a specific `audience`.
 
 ```java
 Auth0 account = new Auth0("{YOUR_CLIENT_ID}", "{YOUR_DOMAIN}");
+account.setOIDCConformant(true);
 ```
 
 Alternatively, you can save your client information in the `strings.xml` file using the following names:
@@ -54,6 +55,7 @@ And then create a new Auth0 instance by passing an Android Context:
 
 ```java
 Auth0 account = new Auth0(context);
+account.setOIDCConformant(true);
 ```
 
 
@@ -91,7 +93,7 @@ authentication
 
 #### Passwordless Login
 
-This feature requires your client to have the *Resource Owner* Legacy Grant Type enabled. Check [this article](https://auth0.com/docs/clients/client-grant-types) to learn how to enable it.
+This feature requires your client to have the *Resource Owner* Legacy Grant Type enabled. Check [this article](https://auth0.com/docs/clients/client-grant-types) to learn how to enable it. Also, passwordless flows don't support the `audience` parameter.
 
 Passwordless it's a 2 steps flow:
 
@@ -372,6 +374,15 @@ WebAuthProvider.init(account)
 ```java
 WebAuthProvider.init(account)
                 .withConnectionScope("email", "profile", "calendar:read")
+                .start(MainActivity.this, authCallback);
+```
+
+#### Request an audience
+In order to request an audience the `Auth0` instance must be set as "OIDC conformant". Check the [usage](#usage) section to learn more. 
+
+```java
+WebAuthProvider.init(account)
+                .withAudience("https://myapi.mytenant.auth0.com/")
                 .start(MainActivity.this, authCallback);
 ```
 
