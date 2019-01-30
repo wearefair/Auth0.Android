@@ -100,6 +100,7 @@ class OAuthManager {
 
         if (activity instanceof FairAuthLogger) {
             logger = new WeakReference<>((FairAuthLogger) activity);
+            logToFair("OAuthManager - Logging Authorize URI - " + uri.toString());
             logToFair("OAuthManager - Logging Redirect URL - " + redirectUri);
         }
         if (useBrowser) {
