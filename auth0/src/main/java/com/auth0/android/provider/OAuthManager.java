@@ -17,7 +17,9 @@ import com.auth0.android.jwt.Claim;
 import com.auth0.android.jwt.DecodeException;
 import com.auth0.android.jwt.JWT;
 import com.auth0.android.result.Credentials;
+import com.auth0.android.util.FairAuthLogger;
 
+import java.lang.ref.WeakReference;
 import java.security.SecureRandom;
 import java.util.Date;
 import java.util.HashMap;
@@ -64,6 +66,7 @@ class OAuthManager {
     private PKCE pkce;
     private Long currentTimeInMillis;
     private CustomTabsOptions ctOptions;
+    WeakReference<FairAuthLogger> logger;
 
     OAuthManager(@NonNull Auth0 account, @NonNull AuthCallback callback, @NonNull Map<String, String> parameters) {
         this.account = account;
@@ -95,6 +98,10 @@ class OAuthManager {
         Uri uri = buildAuthorizeUri();
         this.requestCode = requestCode;
 
+        if (activity instanceof FairAuthLogger) {
+            logger = new WeakReference<>((FairAuthLogger) activity);
+            logToFair("OAuthManager - Logging Redirect URL - " + redirectUri);
+        }
         if (useBrowser) {
             AuthenticationActivity.authenticateUsingBrowser(activity, uri, ctOptions);
         } else {
@@ -114,6 +121,7 @@ class OAuthManager {
             return false;
         }
         logDebug("The parsed CallbackURI contains the following values: " + values);
+        logToFair("OAuthManager - parsed CallbackURI contains the following values: " + values);
 
         try {
             assertNoError(values.get(KEY_ERROR), values.get(KEY_ERROR_DESCRIPTION));
@@ -132,11 +140,17 @@ class OAuthManager {
                 pkce.getToken(values.get(KEY_CODE), new AuthCallback() {
                     @Override
                     public void onFailure(@NonNull Dialog dialog) {
+                        logToFair("OAuthManager - Failure - Showing dialog");
                         callback.onFailure(dialog);
                     }
 
                     @Override
                     public void onFailure(AuthenticationException exception) {
+                        if (exception != null && exception.getDescription() != null) {
+                            logToFair("OAuthManager - Failure - Given exception with description: " + exception.getDescription());
+                        } else {
+                            logToFair("OAuthManager - Failure - Given exception without description");
+                        }
                         callback.onFailure(exception);
                     }
 
@@ -147,6 +161,11 @@ class OAuthManager {
                 });
             }
         } catch (AuthenticationException e) {
+            if (e != null && e.getDescription() != null) {
+                logToFair("OAuthManager - Failure - Given exception with description: " + e.getDescription());
+            } else {
+                logToFair("OAuthManager - Failure - Given exception without description");
+            }
             callback.onFailure(e);
         }
         return true;
@@ -300,6 +319,13 @@ class OAuthManager {
     private void logDebug(String message) {
         if (account.isLoggingEnabled()) {
             Log.d(TAG, message);
+        }
+    }
+
+    //Different than log to debug, we do not want to sensitive info
+    private void logToFair(String message) {
+        if (logger != null && logger.get() != null) {
+            logger.get().logToFair(message);
         }
     }
 }
